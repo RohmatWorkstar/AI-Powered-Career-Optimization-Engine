@@ -84,9 +84,9 @@ export default function HomePage() {
     }
 
     if (usageCount >= 3) {
-      cooldownEnd = Date.now() + 5 * 60 * 1000;
+      cooldownEnd = Date.now() + 30 * 60 * 1000;
       localStorage.setItem("demo_cooldown_end", cooldownEnd.toString());
-      setLimitInfo({ remainingTime: 5 * 60 * 1000 });
+      setLimitInfo({ remainingTime: 30 * 60 * 1000 });
       return;
     }
 
@@ -111,7 +111,7 @@ export default function HomePage() {
       usageCount += 1;
       localStorage.setItem("demo_usage_count", usageCount.toString());
       if (usageCount >= 3) {
-        localStorage.setItem("demo_cooldown_end", (Date.now() + 5 * 60 * 1000).toString());
+        localStorage.setItem("demo_cooldown_end", (Date.now() + 30 * 60 * 1000).toString());
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t.errorSomethingWrong);
