@@ -19,7 +19,37 @@ export default function HomePage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(true);
+  const [limitInfo, setLimitInfo] = useState<{ remainingTime: number } | null>(null);
   const { t, locale } = useLanguage();
+
+  // Check limits on mount
+  useEffect(() => {
+    const cooldownEnd = parseInt(localStorage.getItem("demo_cooldown_end") || "0", 10);
+    if (cooldownEnd && Date.now() < cooldownEnd) {
+      setLimitInfo({ remainingTime: cooldownEnd - Date.now() });
+    }
+  }, []);
+
+  // Handle countdown timer
+  useEffect(() => {
+    if (!limitInfo) return;
+    
+    const interval = setInterval(() => {
+      const cooldownEnd = parseInt(localStorage.getItem("demo_cooldown_end") || "0", 10);
+      const remaining = cooldownEnd - Date.now();
+      
+      if (remaining <= 0) {
+        setLimitInfo(null);
+        localStorage.setItem("demo_usage_count", "0");
+        localStorage.removeItem("demo_cooldown_end");
+        clearInterval(interval);
+      } else {
+        setLimitInfo({ remainingTime: remaining });
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [limitInfo]);
 
   // Apply dark mode on mount if not already handled
   useEffect(() => {
@@ -39,6 +69,28 @@ export default function HomePage() {
       setError(t.errorUploadResume);
       return;
     }
+
+    let usageCount = parseInt(localStorage.getItem("demo_usage_count") || "0", 10);
+    let cooldownEnd = parseInt(localStorage.getItem("demo_cooldown_end") || "0", 10);
+
+    // Limit checks
+    if (cooldownEnd && Date.now() < cooldownEnd) {
+      setLimitInfo({ remainingTime: cooldownEnd - Date.now() });
+      return;
+    } else if (cooldownEnd && Date.now() >= cooldownEnd) {
+      usageCount = 0;
+      localStorage.setItem("demo_usage_count", "0");
+      localStorage.removeItem("demo_cooldown_end");
+    }
+
+    if (usageCount >= 3) {
+      cooldownEnd = Date.now() + 5 * 60 * 1000;
+      localStorage.setItem("demo_cooldown_end", cooldownEnd.toString());
+      setLimitInfo({ remainingTime: 5 * 60 * 1000 });
+      return;
+    }
+
+    setLimitInfo(null);
     setError(null);
     setIsAnalyzing(true);
 
@@ -54,6 +106,13 @@ export default function HomePage() {
       }
       const data: AnalysisResult = await res.json();
       setResult(data);
+
+      // Increment usage count on success
+      usageCount += 1;
+      localStorage.setItem("demo_usage_count", usageCount.toString());
+      if (usageCount >= 3) {
+        localStorage.setItem("demo_cooldown_end", (Date.now() + 5 * 60 * 1000).toString());
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t.errorSomethingWrong);
     } finally {
@@ -191,8 +250,41 @@ export default function HomePage() {
                 </div>
               </div>
 
+              {/* Limit reached UI */}
+              {limitInfo && (
+                <div className="lg:col-span-2 mt-2 animate-fade-in relative overflow-hidden rounded-2xl border border-brand-200 dark:border-brand-800 bg-gradient-to-br from-brand-50 to-white dark:from-brand-950/40 dark:to-gray-900 p-8 shadow-sm">
+                  <div className="absolute -top-10 -right-10 h-32 w-32 bg-brand-500/10 rounded-full blur-2xl"></div>
+                  <div className="relative z-10 flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400">
+                      <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2.25m0 0v2.25m0-2.25h2.25m-2.25 0H9.75M12 21a9 9 0 100-18 9 9 0 000 18z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        {t.limitReachedTitle}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
+                        {t.limitReachedMessage}
+                      </p>
+                      <div className="inline-flex items-center gap-2 rounded-lg bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-brand-600 dark:text-brand-400 shadow-sm border border-brand-100 dark:border-brand-800">
+                         <svg className="h-4 w-4 animate-spin-slow" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                         </svg>
+                         {Math.floor(limitInfo.remainingTime / 60000).toString().padStart(2, '0')}:
+                         {Math.floor((limitInfo.remainingTime % 60000) / 1000).toString().padStart(2, '0')} {t.timeRemaining}
+                      </div>
+                      <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 border-t border-brand-100 dark:border-brand-800/50 pt-4">
+                        {t.limitCooldownMessage}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Analyze Button */}
-              <div className="lg:col-span-2 flex justify-center">
+              {!limitInfo && (
+                <div className="lg:col-span-2 flex justify-center">
                 <button
                   onClick={handleAnalyze}
                   disabled={!file || isAnalyzing}
@@ -229,6 +321,7 @@ export default function HomePage() {
                   )}
                 </button>
               </div>
+              )}
               </div>
             </div>
           ) : (

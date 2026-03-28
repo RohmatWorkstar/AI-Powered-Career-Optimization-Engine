@@ -61,6 +61,12 @@ export interface Translations {
   errorUploadResume: string;
   errorAnalysisFailed: string;
   errorSomethingWrong: string;
+
+  // Limit
+  limitReachedTitle: string;
+  limitReachedMessage: string;
+  limitCooldownMessage: string;
+  timeRemaining: string;
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -127,6 +133,12 @@ export const translations: Record<Locale, Translations> = {
     errorUploadResume: "Please upload your resume before analyzing.",
     errorAnalysisFailed: "Analysis failed.",
     errorSomethingWrong: "Something went wrong.",
+
+    // Limit
+    limitReachedTitle: "Live Demo Limit Reached",
+    limitReachedMessage: "Thank you for exploring this project! This AI Resume Analyzer is a technical demo built by Rohmat to showcase expertise in full-stack development, AI integration, and modern UX design. As a live portfolio project, usage is limited to 3 analyses per user.",
+    limitCooldownMessage: "Please wait 5 minutes before your next analysis. If you're an HR professional or recruiter looking for an experienced software developer to join your team, feel free to reach out directly!",
+    timeRemaining: "Time remaining",
   },
   id: {
     // Header
@@ -191,5 +203,11 @@ export const translations: Record<Locale, Translations> = {
     errorUploadResume: "Silakan unggah resume sebelum menganalisis.",
     errorAnalysisFailed: "Analisis gagal.",
     errorSomethingWrong: "Terjadi kesalahan.",
+
+    // Limit
+    limitReachedTitle: "Batas Demo Tercapai",
+    limitReachedMessage: "Terima kasih telah mencoba proyek ini! AI Resume Analyzer ini adalah demo teknis yang dibangun oleh Rohmat untuk menampilkan keahlian dalam pengembangan full-stack, integrasi AI, dan desain UX modern. Sebagai proyek portofolio, penggunaan dibatasi hingga 3 analisis per pengguna.",
+    limitCooldownMessage: "Mohon tunggu 5 menit sebelum analisis berikutnya. Jika Anda seorang profesional HR atau rekruter yang sedang mencari pengembang perangkat lunak berpengalaman untuk bergabung dengan tim Anda, jangan ragu untuk menghubungi secara langsung!",
+    timeRemaining: "Waktu tersisa",
   },
 };
