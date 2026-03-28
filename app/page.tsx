@@ -19,7 +19,7 @@ export default function HomePage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(true);
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   // Apply dark mode on mount if not already handled
   useEffect(() => {
@@ -281,17 +281,17 @@ export default function HomePage() {
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <ResultCard
                   title={t.strengths}
-                  items={result.strengths}
+                  items={result.strengths[locale] || []}
                   type="strength"
                 />
                 <ResultCard
                   title={t.areasToImprove}
-                  items={result.weaknesses}
+                  items={result.weaknesses[locale] || []}
                   type="weakness"
                 />
                 <ResultCard
                   title={t.suggestions}
-                  items={result.suggestions}
+                  items={result.suggestions[locale] || []}
                   type="suggestion"
                 />
               </div>

@@ -1,11 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
 
+export interface TranslatedContent {
+  en: string[];
+  id: string[];
+}
+
 export interface AnalysisResult {
   score: number;
   matchPercentage: number;
-  strengths: string[];
-  weaknesses: string[];
-  suggestions: string[];
+  strengths: TranslatedContent;
+  weaknesses: TranslatedContent;
+  suggestions: TranslatedContent;
 }
 
 // The client gets the API key from the environment variable `GEMINI_API_KEY`.
@@ -13,6 +18,7 @@ const ai = new GoogleGenAI({});
 
 /**
  * Build the prompt for Gemini to analyze a resume against a job description.
+ * Instructs the AI to return translated content for both English and Indonesian.
  */
 function buildPrompt(resumeText: string, jobDesc: string): string {
   return `You are an expert career advisor and ATS (Applicant Tracking System) specialist.
@@ -23,16 +29,26 @@ Analyze the following resume${jobDesc ? " against the given job description" : "
 ${resumeText}
 ${jobDesc ? `\n=== JOB DESCRIPTION ===\n${jobDesc}` : ""}
 
-Respond ONLY with a valid JSON object in this exact format (no markdown, no code fences, no extra text):
+Respond ONLY with a valid JSON object in this exact format (no markdown, no code fences, no extra text). For the arrays (strengths, weaknesses, suggestions), you MUST provide BOTH an English ("en") array and an Indonesian ("id") array containing equivalent translated points.
+
 {
   "score": <number 0-100 representing ATS compatibility score>,
   "matchPercentage": <number 0-100 representing job match percentage>,
-  "strengths": [<array of 3-5 specific strength strings found in the resume>],
-  "weaknesses": [<array of 2-4 specific weakness/gap strings>],
-  "suggestions": [<array of 3-5 actionable improvement suggestions>]
+  "strengths": {
+    "en": [<array of 3-5 specific strength strings found in the resume in English>],
+    "id": [<array of 3-5 specific strength strings found in the resume in Indonesian>]
+  },
+  "weaknesses": {
+    "en": [<array of 2-4 specific weakness/gap strings in English>],
+    "id": [<array of 2-4 specific weakness/gap strings in Indonesian>]
+  },
+  "suggestions": {
+    "en": [<array of 3-5 actionable improvement suggestions in English>],
+    "id": [<array of 3-5 actionable improvement suggestions in Indonesian>]
+  }
 }
 
-Be specific and reference actual content from the resume. Do not use generic feedback.`;
+Be specific and reference actual content from the resume. Do not use generic feedback. Make sure the translated content means exactly the same thing.`;
 }
 
 /**
@@ -48,13 +64,19 @@ function parseGeminiResponse(text: string): AnalysisResult {
   try {
     const parsed = JSON.parse(cleaned);
 
+    const safeArray = (arr: any) => (Array.isArray(arr) ? arr.map(String) : []);
+    const safeContent = (obj: any): TranslatedContent => ({
+      en: obj && obj.en ? safeArray(obj.en) : [],
+      id: obj && obj.id ? safeArray(obj.id) : [],
+    });
+
     // Validate and clamp values
     return {
       score: Math.max(0, Math.min(100, Number(parsed.score) || 0)),
       matchPercentage: Math.max(0, Math.min(100, Number(parsed.matchPercentage) || 0)),
-      strengths: Array.isArray(parsed.strengths) ? parsed.strengths.map(String) : [],
-      weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses.map(String) : [],
-      suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.map(String) : [],
+      strengths: safeContent(parsed.strengths),
+      weaknesses: safeContent(parsed.weaknesses),
+      suggestions: safeContent(parsed.suggestions),
     };
   } catch (error) {
     console.error("[parseGeminiResponse] Failed to parse JSON:", text);
@@ -85,7 +107,6 @@ export async function analyzeWithAI(
       contents: [{ role: "user", parts: [{ text: prompt }] }],
     });
 
-    // The SDK response structure usually has 'text' property or requires awaiting it
     const textContent = response.text;
     
     if (!textContent) {
@@ -98,7 +119,6 @@ export async function analyzeWithAI(
     
     const message = error?.message || "";
     
-    // Specifically handle 429 (Rate Limit) and other common errors
     if (message.includes("429") || message.includes("quota") || message.includes("exhausted")) {
       throw new Error("AI analysis limit reached (Free Tier). Please wait a moment before trying again or come back later.");
     }
@@ -124,22 +144,45 @@ function getMockResult(): AnalysisResult {
   return {
     score: 85,
     matchPercentage: 78,
-    strengths: [
-      "Strong React & Next.js skills",
-      "Solid project portfolio",
-      "Clear and concise communication style",
-      "Experience with TypeScript",
-    ],
-    weaknesses: [
-      "Limited automated testing experience",
-      "No cloud deployment mentioned",
-      "Missing quantified achievements",
-    ],
-    suggestions: [
-      "Add unit/integration tests using Jest or Vitest",
-      "Highlight backend API projects with Node.js or Python",
-      "Include measurable outcomes (e.g., 'reduced load time by 30%')",
-      "Mention cloud platforms like AWS, GCP, or Vercel deployments",
-    ],
+    strengths: {
+      en: [
+        "Strong React & Next.js skills",
+        "Solid project portfolio",
+        "Clear and concise communication style",
+        "Experience with TypeScript",
+      ],
+      id: [
+        "Keahlian React & Next.js yang kuat",
+        "Portofolio proyek yang solid",
+        "Gaya komunikasi yang jelas dan ringkas",
+        "Berpengalaman dengan TypeScript",
+      ]
+    },
+    weaknesses: {
+      en: [
+        "Limited automated testing experience",
+        "No cloud deployment mentioned",
+        "Missing quantified achievements",
+      ],
+      id: [
+        "Pengalaman pengujian otomatis yang terbatas",
+        "Tidak ada penyebutan cloud deployment",
+        "Pencapaian tidak diukur secara kuantitatif",
+      ]
+    },
+    suggestions: {
+      en: [
+        "Add unit/integration tests using Jest or Vitest",
+        "Highlight backend API projects with Node.js or Python",
+        "Include measurable outcomes (e.g., 'reduced load time by 30%')",
+        "Mention cloud platforms like AWS, GCP, or Vercel deployments",
+      ],
+      id: [
+        "Tambahkan unit/integration tests menggunakan Jest atau Vitest",
+        "Soroti proyek backend API menggunakan Node.js atau Python",
+        "Sertakan hasil yang terukur (misal., 'mengurangi waktu muat sebesar 30%')",
+        "Sebutkan platform cloud seperti AWS, GCP, atau deployment Vercel",
+      ]
+    },
   };
 }
