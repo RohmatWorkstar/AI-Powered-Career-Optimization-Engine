@@ -1,6 +1,10 @@
 "use client";
 
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+
 export default function EmptyStateIllustration() {
+  const { t } = useLanguage();
+
   return (
     <div className="flex flex-col items-center justify-center py-6 animate-fade-in">
       <svg
@@ -111,7 +115,7 @@ export default function EmptyStateIllustration() {
       </svg>
 
       <p className="mt-4 text-sm text-gray-400 dark:text-gray-500">
-        Upload a resume to get started
+        {t.emptyStateText}
       </p>
     </div>
   );

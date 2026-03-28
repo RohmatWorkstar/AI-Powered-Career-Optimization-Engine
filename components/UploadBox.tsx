@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { CloudArrowUpIcon, DocumentTextIcon, XMarkIcon } from "./icons";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface UploadBoxProps {
   onFileSelect: (file: File | null) => void;
@@ -10,6 +11,7 @@ interface UploadBoxProps {
 
 export default function UploadBox({ onFileSelect, selectedFile }: UploadBoxProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const { t } = useLanguage();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -84,7 +86,7 @@ export default function UploadBox({ onFileSelect, selectedFile }: UploadBoxProps
         <button
           onClick={handleRemove}
           className="rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
-          aria-label="Remove file"
+          aria-label={t.removeFile}
         >
           <XMarkIcon className="h-5 w-5" />
         </button>
@@ -122,16 +124,16 @@ export default function UploadBox({ onFileSelect, selectedFile }: UploadBoxProps
       </div>
       <div>
         <p className="text-base font-semibold text-gray-700 dark:text-gray-200">
-          {isDragging ? "Drop your resume here" : "Drag & drop your resume"}
+          {isDragging ? t.dropHere : t.dragDrop}
         </p>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          or{" "}
+          {t.or}{" "}
           <span className="font-medium text-brand-600 dark:text-brand-400">
-            click to browse
+            {t.clickBrowse}
           </span>
         </p>
         <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-          Supports PDF, DOCX, TXT
+          {t.supportsFormats}
         </p>
       </div>
     </label>
