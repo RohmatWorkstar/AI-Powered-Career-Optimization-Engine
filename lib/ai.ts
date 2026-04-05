@@ -51,10 +51,7 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no code
 Be specific and reference actual content from the resume. Do not use generic feedback. Make sure the translated content means exactly the same thing.`;
 }
 
-/**
- * Parse the Gemini API response text into an AnalysisResult.
- */
-function parseGeminiResponse(text: string): AnalysisResult {
+function parseResponse(text: string): AnalysisResult {
   // Remove markdown code fences if present
   let cleaned = text.trim();
   if (cleaned.startsWith("```")) {
@@ -79,62 +76,136 @@ function parseGeminiResponse(text: string): AnalysisResult {
       suggestions: safeContent(parsed.suggestions),
     };
   } catch (error) {
-    console.error("[parseGeminiResponse] Failed to parse JSON:", text);
+    console.error("[parseResponse] Failed to parse JSON:", text);
     throw new Error("Failed to parse AI response. The model did not return valid JSON.");
   }
 }
 
 /**
- * Analyzes a resume against a job description using Google GenAI SDK.
+ * Analyzes with Gemini API.
+ */
+async function analyzeWithGemini(prompt: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not set.");
+
+  // Following the official quickstart model name: gemini-3-flash-preview
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview", 
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+  });
+
+  const textContent = response.text;
+  
+  if (!textContent) {
+    throw new Error("No text content returned from Gemini AI.");
+  }
+
+  return textContent;
+}
+
+/**
+ * Analyzes with Grok (or Groq) API.
+ */
+async function analyzeWithGrok(prompt: string): Promise<string> {
+  const apiKey = process.env.GROK_API;
+  if (!apiKey) throw new Error("GROK_API is not set.");
+  
+  // Automatically detect if it's a Groq key (gsk_) or xAI key (xai-)
+  const isGroq = apiKey.startsWith('gsk_');
+  const apiUrl = isGroq ? "https://api.groq.com/openai/v1/chat/completions" : "https://api.xai.com/v1/chat/completions";
+  const model = isGroq ? "llama-3.3-70b-versatile" : "grok-beta";
+  
+  const body: any = {
+    model: model,
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.2, // Use low temperature for more consistent JSON
+  };
+
+  // Groq supports JSON mode for valid output structure
+  if (isGroq) {
+    body.response_format = { type: "json_object" };
+  }
+
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => "");
+    throw new Error(`Grok API Error: ${response.status} - ${errorBody}`);
+  }
+
+  const data = await response.json();
+  const textContent = data.choices?.[0]?.message?.content;
+  
+  if (!textContent) {
+    throw new Error("No text content returned from Grok AI.");
+  }
+  
+  return textContent;
+}
+
+/**
+ * Analyzes a resume against a job description using available AI providers.
+ * Falls back to another provider if one fails (limits, timeout, etc).
  */
 export async function analyzeWithAI(
   resumeText: string,
   jobDesc: string
 ): Promise<AnalysisResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const hasGemini = !!process.env.GEMINI_API_KEY;
+  const hasGrok = !!process.env.GROK_API;
 
-  if (!apiKey) {
-    console.warn("GEMINI_API_KEY is not set. Running in mock mode.");
+  if (!hasGemini && !hasGrok) {
+    console.warn("No API keys set. Running in mock mode.");
     return getMockResult();
   }
 
-  try {
-    const prompt = buildPrompt(resumeText, jobDesc);
+  const prompt = buildPrompt(resumeText, jobDesc);
 
-    // Following the official quickstart model name: gemini-3-flash-preview
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", 
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-    });
+  const providers = [];
+  
+  // Urutan Provider: 
+  // 1. Prioritaskan dan coba Groq/Grok terlebih dahulu.
+  // 2. Jika limit/timeout, akan fallback ke Gemini (vice-versa dari urutan aslinya).
+  if (hasGrok) providers.push({ name: 'Grok', fn: analyzeWithGrok });
+  if (hasGemini) providers.push({ name: 'Gemini', fn: analyzeWithGemini });
 
-    const textContent = response.text;
-    
-    if (!textContent) {
-      throw new Error("No text content returned from AI. Please try again.");
+  let lastError: any = null;
+
+  for (const provider of providers) {
+    try {
+      console.log(`[analyzeWithAI] Attempting analysis with ${provider.name}...`);
+      const textContent = await provider.fn(prompt);
+      return parseResponse(textContent);
+    } catch (error: any) {
+      console.error(`[analyzeWithAI] ${provider.name} provider failed:`, error?.message || error);
+      lastError = error;
+      // Continue to the next provider in the fallback chain
     }
-
-    return parseGeminiResponse(textContent);
-  } catch (error: any) {
-    console.error("[analyzeWithAI] Failure:", error);
-    
-    const message = error?.message || "";
-    
-    if (message.includes("429") || message.includes("quota") || message.includes("exhausted")) {
-      throw new Error("AI analysis limit reached (Free Tier). Please wait a moment before trying again or come back later.");
-    }
-    
-    if (message.includes("404") || message.includes("not found")) {
-      throw new Error("The AI model is currently unavailable in your region. Please try again later.");
-    }
-
-    if (message.includes("API key")) {
-      throw new Error("Invalid API configuration. Please check the project setup.");
-    }
-
-    throw new Error(
-      "AI analysis is temporarily unavailable. Please try again in a few moments."
-    );
   }
+
+  // If all providers fail, inspect the last error to throw an appropriate message
+  const message = lastError?.message || "";
+  
+  if (message.includes("429") || message.includes("quota") || message.includes("exhausted")) {
+    throw new Error("AI analysis limit reached for all providers. Please wait a moment before trying again or come back later.");
+  }
+  
+  if (message.includes("404") || message.includes("not found")) {
+    throw new Error("The AI model is currently unavailable. Please try again later.");
+  }
+
+  if (message.includes("API key") || message.includes("401")) {
+    throw new Error("Invalid API configuration. Please check the project setup.");
+  }
+
+  throw new Error("AI analysis is temporarily unavailable. Please try again in a few moments.");
 }
 
 /**
