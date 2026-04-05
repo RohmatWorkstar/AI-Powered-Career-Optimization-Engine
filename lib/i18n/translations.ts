@@ -73,7 +73,7 @@ export const translations: Record<Locale, Translations> = {
   en: {
     // Header
     appName: "ResumeAI",
-    poweredBy: "Powered by Gemini",
+    poweredBy: "Powered by Advanced AI",
     toggleDarkMode: "Toggle dark mode",
 
     // Hero
@@ -143,7 +143,7 @@ export const translations: Record<Locale, Translations> = {
   id: {
     // Header
     appName: "ResumeAI",
-    poweredBy: "Didukung oleh Gemini",
+    poweredBy: "Didukung oleh Kecerdasan AI",
     toggleDarkMode: "Alihkan mode gelap",
 
     // Hero
