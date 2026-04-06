@@ -5,7 +5,9 @@ import UploadBox from "@/components/UploadBox";
 import ScoreBar from "@/components/ScoreBar";
 import ResultCard from "@/components/ResultCard";
 import EmptyStateIllustration from "@/components/EmptyStateIllustration";
-import { SparklesIcon, ArrowPathIcon } from "@/components/icons";
+import DownloadReportButton from "@/components/DownloadReportButton";
+import ResumeEditor from "@/components/ResumeEditor";
+import { SparklesIcon, ArrowPathIcon, PencilSquareIcon } from "@/components/icons";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import type { AnalysisResult } from "@/lib/ai";
@@ -20,6 +22,8 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(true);
   const [limitInfo, setLimitInfo] = useState<{ remainingTime: number } | null>(null);
+  const [resumeText, setResumeText] = useState<string>("");
+  const [showEditor, setShowEditor] = useState(false);
   const { t, locale } = useLanguage();
 
   // Check limits on mount
@@ -104,8 +108,10 @@ export default function HomePage() {
         const data = await res.json();
         throw new Error(data.error || t.errorAnalysisFailed);
       }
-      const data: AnalysisResult = await res.json();
-      setResult(data);
+      const data = await res.json();
+      const { resumeText: extractedText, ...analysisResult } = data;
+      setResult(analysisResult as AnalysisResult);
+      setResumeText(extractedText || "");
 
       // Increment usage count on success
       usageCount += 1;
@@ -123,6 +129,8 @@ export default function HomePage() {
   const handleReanalyze = () => {
     setResult(null);
     setError(null);
+    setResumeText("");
+    setShowEditor(false);
   };
 
   return (
@@ -389,16 +397,33 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Re-analyze Button */}
-              <div className="flex justify-center pt-2">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <DownloadReportButton result={result} />
+                <button
+                  onClick={() => setShowEditor(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border-2 border-brand-500 dark:border-brand-400 bg-brand-50 dark:bg-brand-950/30 px-5 py-3 text-sm font-semibold text-brand-700 dark:text-brand-300 shadow-sm transition-all hover:bg-brand-100 dark:hover:bg-brand-950/50 hover:shadow-md active:scale-[0.97]"
+                >
+                  <PencilSquareIcon className="h-4.5 w-4.5" />
+                  {t.improveResume}
+                </button>
                 <button
                   onClick={handleReanalyze}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-5 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <ArrowPathIcon className="h-4 w-4" />
                   {t.reAnalyze}
                 </button>
               </div>
+
+              {/* Resume Editor Modal */}
+              {showEditor && (
+                <ResumeEditor
+                  resumeText={resumeText}
+                  result={result}
+                  onClose={() => setShowEditor(false)}
+                />
+              )}
             </div>
           )}
         </main>

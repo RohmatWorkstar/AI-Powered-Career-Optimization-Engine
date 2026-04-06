@@ -99,4 +99,75 @@
   .dark .glass-card {
     background: rgba(15, 23, 42, 0.7);
   }
+
+  /* Modal overlay */
+  .animate-modal-overlay {
+    animation: modalOverlay 0.3s ease-out both;
+  }
+
+  @keyframes modalOverlay {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Modal content */
+  .animate-modal-content {
+    animation: modalContent 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes modalContent {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* Toast notification */
+  .animate-toast {
+    animation: toastIn 0.3s ease-out both, toastOut 0.3s ease-in 1.7s both;
+  }
+
+  @keyframes toastIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes toastOut {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.95);
+    }
+  }
+
+  /* Pulse glow for download button */
+  .animate-pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+    }
+  }
 }

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     const result = await analyzeWithAI(resumeText, jobDesc);
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, resumeText });
   } catch (error) {
     console.error("[/api/analyze] Error:", error);
     const message =

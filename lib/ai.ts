@@ -257,3 +257,90 @@ function getMockResult(): AnalysisResult {
     },
   };
 }
+
+/**
+ * Build prompt for resume improvement.
+ */
+function buildImprovePrompt(resumeText: string, weaknesses: string[], suggestions: string[]): string {
+  return `You are an expert resume writer and career advisor. Your task is to improve the following resume based on the analysis feedback provided.
+
+=== ORIGINAL RESUME ===
+${resumeText}
+
+=== IDENTIFIED WEAKNESSES ===
+${weaknesses.map((w, i) => `${i + 1}. ${w}`).join('\n')}
+
+=== SUGGESTED IMPROVEMENTS ===
+${suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+Instructions:
+1. Rewrite and improve the resume text to address the weaknesses and incorporate the suggestions
+2. Keep ALL original factual information (names, dates, companies, education) exactly as they are
+3. Improve the wording, structure, and impact of bullet points
+4. Add quantified achievements where appropriate (using realistic estimates based on context)
+5. Optimize for ATS (Applicant Tracking Systems) by using relevant keywords
+6. Use strong action verbs at the beginning of each bullet point
+7. Ensure consistent formatting throughout
+8. Keep the resume concise and professional
+
+Return ONLY the improved resume text. Do not include any explanations, comments, or markdown formatting. Just return the clean, improved resume text ready to be used.`;
+}
+
+/**
+ * Improves a resume using AI based on analysis feedback.
+ * Uses the same failover strategy as analyzeWithAI.
+ */
+export async function improveResumeWithAI(
+  resumeText: string,
+  weaknesses: string[],
+  suggestions: string[]
+): Promise<string> {
+  const hasGemini = !!process.env.GEMINI_API_KEY;
+  const hasGrok = !!process.env.GROK_API;
+
+  if (!hasGemini && !hasGrok) {
+    // Return a mock improved resume for demo
+    return getMockImprovedResume(resumeText);
+  }
+
+  const prompt = buildImprovePrompt(resumeText, weaknesses, suggestions);
+
+  const providers = [];
+  if (hasGrok) providers.push({ name: 'Grok', fn: analyzeWithGrok });
+  if (hasGemini) providers.push({ name: 'Gemini', fn: analyzeWithGemini });
+
+  let lastError: any = null;
+
+  for (const provider of providers) {
+    try {
+      console.log(`[improveResumeWithAI] Attempting improvement with ${provider.name}...`);
+      const result = await provider.fn(prompt);
+      // Clean up any markdown code fences if present
+      let cleaned = result.trim();
+      if (cleaned.startsWith("```")) {
+        cleaned = cleaned.replace(/^```(?:\w+)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+      }
+      return cleaned;
+    } catch (error: any) {
+      console.error(`[improveResumeWithAI] ${provider.name} provider failed:`, error?.message || error);
+      lastError = error;
+    }
+  }
+
+  throw new Error("Failed to improve resume. Please try again later.");
+}
+
+/**
+ * Returns a mock improved resume for demo/fallback.
+ */
+function getMockImprovedResume(originalText: string): string {
+  return `${originalText}
+
+---
+[AI Improvement Notes]
+• Enhanced action verbs and quantified achievements
+• Optimized keyword density for ATS compatibility
+• Improved formatting and structure for better readability
+• Added measurable outcomes to project descriptions`;
+}
+
