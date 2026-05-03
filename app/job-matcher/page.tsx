@@ -121,7 +121,7 @@ export default function JobMatcherPage() {
     } finally {
       setIsMatching(false);
     }
-  }, [resumeFile, jdFile, jdText, t]);
+  }, [resumeFile, jdFile, jdText, t, locale]);
 
   const handleCopy = useCallback(async () => {
     if (!tailoredResume) return;
@@ -194,9 +194,9 @@ export default function JobMatcherPage() {
     doc.setTextColor(107, 114, 128);
     doc.text("Optimized Resume", margin, y + 6);
 
-    // Keyword legend if any keywords exist
+    // Keyword legend if any keywords exist (no emoji — jsPDF helvetica doesn't support them)
     if (keywords.length > 0) {
-      const legendText = `🔑 ${t.pdfKeywordLegend} (${keywords.length}):`;
+      const legendText = `[Keywords] ${t.pdfKeywordLegend} (${keywords.length})`;
       doc.setFontSize(7.5);
       doc.setTextColor(146, 64, 14);
       doc.text(legendText, pageWidth - margin, y + 6, { align: "right" });
@@ -255,32 +255,37 @@ export default function JobMatcherPage() {
         doc.setTextColor(31, 41, 55);
 
         if (keywords.length > 0) {
-          // Render bullet content with highlighted keywords
           const sorted = [...keywords].sort((a, b) => b.length - a.length);
           const escaped = sorted.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
           const kRegex = new RegExp(`(${escaped.join("|")})`, "gi");
           const segments = bulletContent.split(kRegex);
-          let xCursor = margin + 7;
-          doc.setFontSize(10.5);
-          for (const seg of segments) {
-            if (!seg) continue;
-            const isKw = keywords.some(k => k.toLowerCase() === seg.toLowerCase());
-            const segWidth = doc.getTextWidth(seg);
-            if (isKw) {
-              // Draw yellow highlight rect behind text
-              doc.setFillColor(254, 249, 195);
-              doc.rect(xCursor - 0.5, y - 3.5, segWidth + 1, 4.5, "F");
-              doc.setTextColor(146, 64, 14);
-              doc.setFont("helvetica", "bold");
-            } else {
-              doc.setTextColor(31, 41, 55);
-              doc.setFont("helvetica", "normal");
+          // Safety: compute total width — if it overflows, fall back to plain text
+          const totalWidth = segments.reduce((sum: number, seg: string) => sum + doc.getTextWidth(seg), 0);
+          if (totalWidth + 7 > contentWidth) {
+            doc.setTextColor(31, 41, 55);
+            doc.text(bulletContent, margin + 7, y);
+          } else {
+            let xCursor = margin + 7;
+            doc.setFontSize(10.5);
+            for (const seg of segments) {
+              if (!seg) continue;
+              const isKw = keywords.some(k => k.toLowerCase() === seg.toLowerCase());
+              const segWidth = doc.getTextWidth(seg);
+              if (isKw) {
+                doc.setFillColor(254, 249, 195);
+                doc.rect(xCursor - 0.5, y - 3.5, segWidth + 1, 4.5, "F");
+                doc.setTextColor(146, 64, 14);
+                doc.setFont("helvetica", "bold");
+              } else {
+                doc.setTextColor(31, 41, 55);
+                doc.setFont("helvetica", "normal");
+              }
+              doc.text(seg, xCursor, y);
+              xCursor += segWidth;
             }
-            doc.text(seg, xCursor, y);
-            xCursor += segWidth;
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(31, 41, 55);
           }
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(31, 41, 55);
         } else {
           doc.text(bulletContent, margin + 7, y);
         }
@@ -294,26 +299,33 @@ export default function JobMatcherPage() {
           const escaped = sorted.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
           const kRegex = new RegExp(`(${escaped.join("|")})`, "gi");
           const segments = line.split(kRegex);
-          let xCursor = margin;
-          doc.setFontSize(10.5);
-          for (const seg of segments) {
-            if (!seg) continue;
-            const isKw = keywords.some(k => k.toLowerCase() === seg.toLowerCase());
-            const segWidth = doc.getTextWidth(seg);
-            if (isKw) {
-              doc.setFillColor(254, 249, 195);
-              doc.rect(xCursor - 0.5, y - 3.5, segWidth + 1, 4.5, "F");
-              doc.setTextColor(146, 64, 14);
-              doc.setFont("helvetica", "bold");
-            } else {
-              doc.setTextColor(31, 41, 55);
-              doc.setFont("helvetica", "normal");
+          // Safety: compute total width — if it overflows, fall back to plain text
+          const totalWidth = segments.reduce((sum: number, seg: string) => sum + doc.getTextWidth(seg), 0);
+          if (totalWidth > contentWidth) {
+            doc.setTextColor(31, 41, 55);
+            doc.text(line, margin, y);
+          } else {
+            let xCursor = margin;
+            doc.setFontSize(10.5);
+            for (const seg of segments) {
+              if (!seg) continue;
+              const isKw = keywords.some(k => k.toLowerCase() === seg.toLowerCase());
+              const segWidth = doc.getTextWidth(seg);
+              if (isKw) {
+                doc.setFillColor(254, 249, 195);
+                doc.rect(xCursor - 0.5, y - 3.5, segWidth + 1, 4.5, "F");
+                doc.setTextColor(146, 64, 14);
+                doc.setFont("helvetica", "bold");
+              } else {
+                doc.setTextColor(31, 41, 55);
+                doc.setFont("helvetica", "normal");
+              }
+              doc.text(seg, xCursor, y);
+              xCursor += segWidth;
             }
-            doc.text(seg, xCursor, y);
-            xCursor += segWidth;
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(31, 41, 55);
           }
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(31, 41, 55);
         } else {
           doc.text(line, margin, y);
         }
@@ -341,7 +353,7 @@ export default function JobMatcherPage() {
 
     const fileName = `Tailored_Resume_${new Date().toISOString().slice(0, 10)}.pdf`;
     doc.save(fileName);
-  }, [tailoredResume]);
+  }, [tailoredResume, keywords, t]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
