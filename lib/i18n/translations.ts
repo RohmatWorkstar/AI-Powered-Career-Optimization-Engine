@@ -124,6 +124,12 @@ export interface Translations {
   editResult: string;
   viewResult: string;
   pdfKeywordLegend: string;
+
+  // Score
+  matchScore: string;
+  scoreBefore: string;
+  scoreAfter: string;
+  scoreImprovement: string;
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -253,6 +259,12 @@ export const translations: Record<Locale, Translations> = {
     editResult: "Edit",
     viewResult: "Preview",
     pdfKeywordLegend: "Highlighted = Keywords matching Job Description",
+
+    // Score
+    matchScore: "ATS Match Score",
+    scoreBefore: "Before",
+    scoreAfter: "After",
+    scoreImprovement: "Improvement",
   },
   id: {
     // Header
@@ -380,5 +392,11 @@ export const translations: Record<Locale, Translations> = {
     editResult: "Edit",
     viewResult: "Pratinjau",
     pdfKeywordLegend: "Ditandai = Kata kunci yang cocok dengan Deskripsi Pekerjaan",
+
+    // Score
+    matchScore: "Skor Kecocokan ATS",
+    scoreBefore: "Sebelum",
+    scoreAfter: "Sesudah",
+    scoreImprovement: "Peningkatan",
   },
 };

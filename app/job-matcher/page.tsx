@@ -19,6 +19,7 @@ export default function JobMatcherPage() {
   const [error, setError] = useState<string | null>(null);
   const [limitInfo, setLimitInfo] = useState<{ remainingTime: number } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [scores, setScores] = useState<{ before: number; after: number } | null>(null);
 
   // Check limits on mount
   useEffect(() => {
@@ -107,6 +108,7 @@ export default function JobMatcherPage() {
       const data = await res.json();
       setTailoredResume(data.tailoredResume);
       setKeywords(data.keywords || []);
+      setScores(data.scores || null);
       setShowKeywords(true);
       setIsEditMode(false);
 
@@ -544,6 +546,46 @@ export default function JobMatcherPage() {
               </div>
             )}
           </div>
+
+          {/* Score Indicator */}
+          {scores && !isMatching && tailoredResume && (
+            <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  {t.matchScore}
+                </span>
+                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">
+                  +{scores.after - scores.before}% {t.scoreImprovement}
+                </span>
+              </div>
+              <div className="space-y-3">
+                <div className="relative pt-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t.scoreBefore}</span>
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{scores.before}%</span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-orange-400 dark:bg-orange-500 rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${scores.before}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="relative pt-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-brand-600 dark:text-brand-400">{t.scoreAfter} ✨</span>
+                    <span className="text-xs font-bold text-brand-600 dark:text-brand-400">{scores.after}%</span>
+                  </div>
+                  <div className="h-2.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-brand-500 to-emerald-400 rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${scores.after}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex-1 overflow-auto p-6 bg-gray-50 dark:bg-gray-950/50">
             {isMatching ? (
