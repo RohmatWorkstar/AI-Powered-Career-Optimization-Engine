@@ -116,6 +116,14 @@ export interface Translations {
   noResultDesc: string;
   errorUploadJdOrPaste: string;
   newFeature: string;
+
+  // Keyword highlighting
+  showKeywords: string;
+  hideKeywords: string;
+  keywordsFound: string;
+  editResult: string;
+  viewResult: string;
+  pdfKeywordLegend: string;
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -237,6 +245,14 @@ export const translations: Record<Locale, Translations> = {
     noResultDesc: "Upload your CV and a Job Description on the left, then click Match & Optimize to see the AI-tailored resume here.",
     errorUploadJdOrPaste: "Please provide a Job Description (Upload or Paste Text).",
     newFeature: "NEW FEATURE",
+
+    // Keyword highlighting
+    showKeywords: "Show Keywords",
+    hideKeywords: "Hide Keywords",
+    keywordsFound: "keywords found",
+    editResult: "Edit",
+    viewResult: "Preview",
+    pdfKeywordLegend: "Highlighted = Keywords matching Job Description",
   },
   id: {
     // Header
@@ -356,5 +372,13 @@ export const translations: Record<Locale, Translations> = {
     noResultDesc: "Unggah CV dan Deskripsi Pekerjaan di sebelah kiri, lalu klik Cocokkan & Optimalkan untuk melihat resume yang disesuaikan AI di sini.",
     errorUploadJdOrPaste: "Harap berikan Deskripsi Pekerjaan (Unggah File atau Tempel Teks).",
     newFeature: "FITUR BARU",
+
+    // Keyword highlighting
+    showKeywords: "Tampilkan Kata Kunci",
+    hideKeywords: "Sembunyikan Kata Kunci",
+    keywordsFound: "kata kunci ditemukan",
+    editResult: "Edit",
+    viewResult: "Pratinjau",
+    pdfKeywordLegend: "Ditandai = Kata kunci yang cocok dengan Deskripsi Pekerjaan",
   },
 };

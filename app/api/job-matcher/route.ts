@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { tailorResumeWithAI } from "@/lib/ai";
 import { extractTextFromFile } from "@/lib/fileUtils";
 
+/**
+ * Extract unique keywords from <<keyword>> markers in AI text.
+ * Returns { cleanText, keywords }.
+ */
+function parseKeywords(markedText: string): { cleanText: string; keywords: string[] } {
+  const keywordsSet = new Set<string>();
+  const markerRegex = /<<([^>>]+)>>/g;
+  let match;
+  while ((match = markerRegex.exec(markedText)) !== null) {
+    keywordsSet.add(match[1].trim());
+  }
+  // Remove markers from text so it reads cleanly
+  const cleanText = markedText.replace(/<<([^>>]+)>>/g, "$1");
+  return { cleanText, keywords: Array.from(keywordsSet) };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -24,18 +40,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Extract text from the uploaded resume file
     const resumeText = await extractTextFromFile(resumeFile);
     
-    // Extract text from JD file if present, otherwise use provided text
     let jobDescText = jdText || "";
     if (jdFile) {
       jobDescText = await extractTextFromFile(jdFile);
     }
 
-    const tailoredResume = await tailorResumeWithAI(resumeText, jobDescText, locale);
+    const markedResume = await tailorResumeWithAI(resumeText, jobDescText, locale);
+    const { cleanText: tailoredResume, keywords } = parseKeywords(markedResume);
 
-    return NextResponse.json({ tailoredResume, originalResumeText: resumeText });
+    return NextResponse.json({ tailoredResume, keywords, originalResumeText: resumeText });
   } catch (error) {
     console.error("[/api/job-matcher] Error:", error);
     const message =
@@ -43,3 +58,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

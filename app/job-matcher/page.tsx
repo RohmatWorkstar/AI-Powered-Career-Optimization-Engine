@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import UploadBox from "@/components/UploadBox";
 import { SparklesIcon, DocumentTextIcon, ClipboardCheckIcon, ClipboardIcon, DownloadIcon } from "@/components/icons";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -13,6 +13,9 @@ export default function JobMatcherPage() {
   const [jdText, setJdText] = useState("");
   const [isMatching, setIsMatching] = useState(false);
   const [tailoredResume, setTailoredResume] = useState<string | null>(null);
+  const [keywords, setKeywords] = useState<string[]>([]);
+  const [showKeywords, setShowKeywords] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [limitInfo, setLimitInfo] = useState<{ remainingTime: number } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -103,6 +106,9 @@ export default function JobMatcherPage() {
 
       const data = await res.json();
       setTailoredResume(data.tailoredResume);
+      setKeywords(data.keywords || []);
+      setShowKeywords(true);
+      setIsEditMode(false);
 
       // Increment usage count on success
       usageCount += 1;
@@ -135,6 +141,35 @@ export default function JobMatcherPage() {
     }
   }, [tailoredResume]);
 
+  // Render text with highlighted keywords
+  const renderHighlighted = useCallback((text: string): React.ReactNode => {
+    if (!keywords.length || !showKeywords) return <span className="whitespace-pre-wrap">{text}</span>;
+
+    // Build regex from keywords, sorted by length desc to match longer phrases first
+    const sorted = [...keywords].sort((a, b) => b.length - a.length);
+    const escaped = sorted.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const regex = new RegExp(`(${escaped.join("|")})`, "gi");
+    const parts = text.split(regex);
+
+    return (
+      <span className="whitespace-pre-wrap">
+        {parts.map((part, i) => {
+          const isKeyword = keywords.some(k => k.toLowerCase() === part.toLowerCase());
+          return isKeyword ? (
+            <mark
+              key={i}
+              className="rounded px-0.5 py-0 bg-yellow-200/80 text-yellow-900 dark:bg-yellow-400/30 dark:text-yellow-200 font-medium not-italic"
+            >
+              {part}
+            </mark>
+          ) : (
+            <span key={i}>{part}</span>
+          );
+        })}
+      </span>
+    );
+  }, [keywords, showKeywords]);
+
   const handleDownloadPDF = useCallback(() => {
     if (!tailoredResume) return;
     const doc = new jsPDF("p", "mm", "a4");
@@ -158,6 +193,14 @@ export default function JobMatcherPage() {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(107, 114, 128);
     doc.text("Optimized Resume", margin, y + 6);
+
+    // Keyword legend if any keywords exist
+    if (keywords.length > 0) {
+      const legendText = `🔑 ${t.pdfKeywordLegend} (${keywords.length}):`;
+      doc.setFontSize(7.5);
+      doc.setTextColor(146, 64, 14);
+      doc.text(legendText, pageWidth - margin, y + 6, { align: "right" });
+    }
 
     y += 14;
     doc.setDrawColor(229, 231, 235);
@@ -205,15 +248,75 @@ export default function JobMatcherPage() {
         doc.setFontSize(10.5);
         doc.setTextColor(31, 41, 55);
       } else if (line.trim().startsWith("•") || line.trim().startsWith("-") || line.trim().startsWith("–")) {
+        // Bullet: detect & highlight keywords inline
+        const bulletContent = line.replace(/^[\s•\-–]+/, "").trim();
         doc.setTextColor(79, 70, 229);
         doc.text("•", margin + 2, y);
         doc.setTextColor(31, 41, 55);
-        doc.text(line.replace(/^[\s•\-–]+/, "").trim(), margin + 7, y);
+
+        if (keywords.length > 0) {
+          // Render bullet content with highlighted keywords
+          const sorted = [...keywords].sort((a, b) => b.length - a.length);
+          const escaped = sorted.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+          const kRegex = new RegExp(`(${escaped.join("|")})`, "gi");
+          const segments = bulletContent.split(kRegex);
+          let xCursor = margin + 7;
+          doc.setFontSize(10.5);
+          for (const seg of segments) {
+            if (!seg) continue;
+            const isKw = keywords.some(k => k.toLowerCase() === seg.toLowerCase());
+            const segWidth = doc.getTextWidth(seg);
+            if (isKw) {
+              // Draw yellow highlight rect behind text
+              doc.setFillColor(254, 249, 195);
+              doc.rect(xCursor - 0.5, y - 3.5, segWidth + 1, 4.5, "F");
+              doc.setTextColor(146, 64, 14);
+              doc.setFont("helvetica", "bold");
+            } else {
+              doc.setTextColor(31, 41, 55);
+              doc.setFont("helvetica", "normal");
+            }
+            doc.text(seg, xCursor, y);
+            xCursor += segWidth;
+          }
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(31, 41, 55);
+        } else {
+          doc.text(bulletContent, margin + 7, y);
+        }
         y += 5.5;
       } else if (line.trim() === "") {
         y += 3;
       } else {
-        doc.text(line, margin, y);
+        // Normal line: detect & highlight keywords inline
+        if (keywords.length > 0) {
+          const sorted = [...keywords].sort((a, b) => b.length - a.length);
+          const escaped = sorted.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+          const kRegex = new RegExp(`(${escaped.join("|")})`, "gi");
+          const segments = line.split(kRegex);
+          let xCursor = margin;
+          doc.setFontSize(10.5);
+          for (const seg of segments) {
+            if (!seg) continue;
+            const isKw = keywords.some(k => k.toLowerCase() === seg.toLowerCase());
+            const segWidth = doc.getTextWidth(seg);
+            if (isKw) {
+              doc.setFillColor(254, 249, 195);
+              doc.rect(xCursor - 0.5, y - 3.5, segWidth + 1, 4.5, "F");
+              doc.setTextColor(146, 64, 14);
+              doc.setFont("helvetica", "bold");
+            } else {
+              doc.setTextColor(31, 41, 55);
+              doc.setFont("helvetica", "normal");
+            }
+            doc.text(seg, xCursor, y);
+            xCursor += segWidth;
+          }
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(31, 41, 55);
+        } else {
+          doc.text(line, margin, y);
+        }
         y += 5.5;
       }
     }
@@ -374,34 +477,62 @@ export default function JobMatcherPage() {
 
         {/* Right Column: Results */}
         <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm flex flex-col h-[800px] overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <DocumentTextIcon className="h-5 w-5 text-brand-500" />
+          {/* Toolbar */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 gap-2 flex-wrap">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
+              <DocumentTextIcon className="h-4 w-4 text-brand-500" />
               {t.tailoredResumeResult}
+              {tailoredResume && keywords.length > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 dark:bg-yellow-500/20 px-2 py-0.5 text-xs font-semibold text-yellow-800 dark:text-yellow-300">
+                  🔑 {keywords.length} {t.keywordsFound}
+                </span>
+              )}
             </h3>
             {tailoredResume && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {/* Keyword toggle */}
+                {keywords.length > 0 && !isEditMode && (
+                  <button
+                    onClick={() => setShowKeywords(v => !v)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium shadow-sm transition ${
+                      showKeywords
+                        ? "border-yellow-300 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300"
+                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                    }`}
+                  >
+                    🔑 {showKeywords ? t.hideKeywords : t.showKeywords}
+                  </button>
+                )}
+                {/* Edit / Preview toggle */}
+                <button
+                  onClick={() => setIsEditMode(v => !v)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  ✏️ {isEditMode ? t.viewResult : t.editResult}
+                </button>
+                {/* Copy */}
                 <button
                   onClick={handleCopy}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   {copied ? (
-                    <><ClipboardCheckIcon className="h-4 w-4 text-emerald-500" /> {t.copied}</>
+                    <><ClipboardCheckIcon className="h-3.5 w-3.5 text-emerald-500" /> {t.copied}</>
                   ) : (
-                    <><ClipboardIcon className="h-4 w-4" /> {t.copyToClipboard}</>
+                    <><ClipboardIcon className="h-3.5 w-3.5" /> {t.copyToClipboard}</>
                   )}
                 </button>
+                {/* Download PDF */}
                 <button
                   onClick={handleDownloadPDF}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-md transition hover:from-brand-700 hover:to-brand-600"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-2.5 py-1.5 text-xs font-semibold text-white shadow-md transition hover:from-brand-700 hover:to-brand-600"
                 >
-                  <DownloadIcon className="h-4 w-4" />
+                  <DownloadIcon className="h-3.5 w-3.5" />
                   {t.downloadPdf}
                 </button>
               </div>
             )}
           </div>
-          
+
           <div className="flex-1 overflow-auto p-6 bg-gray-50 dark:bg-gray-950/50">
             {isMatching ? (
               <div className="h-full flex flex-col items-center justify-center gap-4">
@@ -424,20 +555,23 @@ export default function JobMatcherPage() {
                     <div
                       key={i}
                       className="h-3 rounded-full animate-shimmer"
-                      style={{
-                        width: `${85 - i * 8}%`,
-                        animationDelay: `${i * 0.15}s`,
-                      }}
+                      style={{ width: `${85 - i * 8}%`, animationDelay: `${i * 0.15}s` }}
                     />
                   ))}
                 </div>
               </div>
             ) : tailoredResume ? (
-              <textarea
-                value={tailoredResume}
-                onChange={(e) => setTailoredResume(e.target.value)}
-                className="w-full h-full resize-none bg-transparent outline-none text-sm text-gray-800 dark:text-gray-200 font-[inherit] leading-relaxed"
-              />
+              isEditMode ? (
+                <textarea
+                  value={tailoredResume}
+                  onChange={(e) => setTailoredResume(e.target.value)}
+                  className="w-full h-full resize-none bg-transparent outline-none text-sm text-gray-800 dark:text-gray-200 font-[inherit] leading-relaxed"
+                />
+              ) : (
+                <div className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                  {renderHighlighted(tailoredResume)}
+                </div>
+              )
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center px-4">
                 <div className="h-16 w-16 mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -451,6 +585,7 @@ export default function JobMatcherPage() {
             )}
           </div>
         </div>
+
       </div>
     </main>
   );

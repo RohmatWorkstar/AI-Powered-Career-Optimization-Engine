@@ -368,9 +368,11 @@ Instructions:
 5. Format it cleanly as a professional resume.
 6. Make it compelling to HR recruiters reading the target job description.
 7. CRITICAL: ${langInstruction}
+8. KEYWORD MARKING (CRITICAL): Wrap any significant keyword or key phrase from the job description that you incorporated into the resume using double angle brackets like this: <<keyword>>. This includes: specific tools, technologies, frameworks, certifications, methodologies, and important role-specific skills. Only mark truly significant terms from the JD — do NOT mark common words or generic phrases. Example: "Developed <<microservices>> architecture using <<Node.js>> and <<Docker>>".
 
-Return ONLY the tailored resume text. Do not include any explanations, comments, or markdown formatting (except for basic text structure like bullet points or bold headers).`;
+Return ONLY the tailored resume text (with <<keyword>> markers). Do not include any explanations, comments, or extra markdown formatting.`;
 }
+
 
 /**
  * Tailors a resume specifically to a job description using AI.
