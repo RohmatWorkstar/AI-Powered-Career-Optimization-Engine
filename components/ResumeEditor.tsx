@@ -258,7 +258,7 @@ export default function ResumeEditor({ resumeText, result, onClose }: ResumeEdit
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center animate-modal-overlay">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center animate-modal-overlay">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
