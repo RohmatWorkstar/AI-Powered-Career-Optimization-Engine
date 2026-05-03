@@ -9,7 +9,6 @@ import DownloadReportButton from "@/components/DownloadReportButton";
 import ResumeEditor from "@/components/ResumeEditor";
 import { SparklesIcon, ArrowPathIcon, PencilSquareIcon } from "@/components/icons";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import LanguageToggle from "@/components/LanguageToggle";
 import type { AnalysisResult } from "@/lib/ai";
 
 const MAX_JOB_DESC_LENGTH = 3000;
@@ -20,7 +19,6 @@ export default function HomePage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(true);
   const [limitInfo, setLimitInfo] = useState<{ remainingTime: number } | null>(null);
   const [resumeText, setResumeText] = useState<string>("");
   const [showEditor, setShowEditor] = useState(false);
@@ -54,19 +52,6 @@ export default function HomePage() {
     
     return () => clearInterval(interval);
   }, [limitInfo]);
-
-  // Apply dark mode on mount if not already handled
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
-
-  const toggleDarkMode = () => {
-    setDarkMode((prev) => {
-      const next = !prev;
-      document.documentElement.classList.toggle("dark", next);
-      return next;
-    });
-  };
 
   const handleAnalyze = useCallback(async () => {
     if (!file) {
@@ -134,46 +119,8 @@ export default function HomePage() {
   };
 
   return (
-    <div className={darkMode ? "dark" : ""}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
-        {/* Header */}
-        <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-md">
-                <SparklesIcon className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <span className="text-lg font-bold text-gray-900 dark:text-white leading-tight block">
-                  {t.appName}
-                </span>
-                <span className="text-[11px] text-gray-500 dark:text-gray-400 leading-none">
-                  {t.poweredBy}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <button
-                onClick={toggleDarkMode}
-                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2.5 text-gray-500 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700"
-                aria-label={t.toggleDarkMode}
-              >
-                {darkMode ? (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
-                  </svg>
-                ) : (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main className="mx-auto max-w-6xl px-6 py-10">
+    <>
+      <main className="mx-auto max-w-6xl px-6 py-10">
           {/* Hero */}
           <div className="mb-10 text-center relative overflow-hidden py-4">
             {/* Background blur decorative circles */}
@@ -426,23 +373,22 @@ export default function HomePage() {
               )}
             </div>
           )}
-        </main>
+      </main>
 
-        {/* Footer */}
-        <footer className="mt-16 border-t border-gray-200 dark:border-gray-800 py-8 text-center text-sm text-gray-400 dark:text-gray-600">
-          <p>
-            {t.footerDesc} &middot;{" "}
-            <span className="text-brand-500">{t.poweredBy}</span>
-          </p>
-          <p className="mt-2">
-            {t.builtBy}{" "}
-            <span className="font-semibold text-gray-600 dark:text-gray-300">
-              Rohmat
-            </span>{" "}
-            — {t.portfolioProject}
-          </p>
-        </footer>
-      </div>
-    </div>
+      {/* Footer */}
+      <footer className="mt-16 border-t border-gray-200 dark:border-gray-800 py-8 text-center text-sm text-gray-400 dark:text-gray-600">
+        <p>
+          {t.footerDesc} &middot;{" "}
+          <span className="text-brand-500">{t.poweredBy}</span>
+        </p>
+        <p className="mt-2">
+          {t.builtBy}{" "}
+          <span className="font-semibold text-gray-600 dark:text-gray-300">
+            Rohmat
+          </span>{" "}
+          — {t.portfolioProject}
+        </p>
+      </footer>
+    </>
   );
 }

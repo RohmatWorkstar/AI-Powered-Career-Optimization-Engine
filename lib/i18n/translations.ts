@@ -99,6 +99,23 @@ export interface Translations {
   closeEditor: string;
   improveError: string;
   retryImprove: string;
+
+  // Job Matcher
+  matcherTitle: string;
+  matcherSubtitle: string;
+  matcherDesc: string;
+  targetJobDesc: string;
+  targetJobDescSubtitle: string;
+  pasteJdPlaceholder: string;
+  tailoringResume: string;
+  matchAndOptimize: string;
+  tailoredResumeResult: string;
+  aiIsWriting: string;
+  aiWritingDesc: string;
+  noResultYet: string;
+  noResultDesc: string;
+  errorUploadJdOrPaste: string;
+  newFeature: string;
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -203,6 +220,23 @@ export const translations: Record<Locale, Translations> = {
     closeEditor: "Close",
     improveError: "Failed to generate improvements. Please try again.",
     retryImprove: "Retry",
+
+    // Job Matcher
+    matcherTitle: "Job Matcher",
+    matcherSubtitle: "Auto-Tailor Resume",
+    matcherDesc: "Upload your CV and a Job Description. Our AI will automatically rewrite and optimize your resume to perfectly match the target role, increasing your chances of landing an interview.",
+    targetJobDesc: "Target Job Description",
+    targetJobDescSubtitle: "Upload a Job Description document OR paste the text directly.",
+    pasteJdPlaceholder: "Paste the job description text here...",
+    tailoringResume: "Tailoring your resume...",
+    matchAndOptimize: "Match & Optimize",
+    tailoredResumeResult: "Tailored Resume",
+    aiIsWriting: "AI is writing your tailored resume",
+    aiWritingDesc: "This usually takes 10-20 seconds...",
+    noResultYet: "No Result Yet",
+    noResultDesc: "Upload your CV and a Job Description on the left, then click Match & Optimize to see the AI-tailored resume here.",
+    errorUploadJdOrPaste: "Please provide a Job Description (Upload or Paste Text).",
+    newFeature: "NEW FEATURE",
   },
   id: {
     // Header
@@ -305,5 +339,22 @@ export const translations: Record<Locale, Translations> = {
     closeEditor: "Tutup",
     improveError: "Gagal membuat perbaikan. Silakan coba lagi.",
     retryImprove: "Coba Lagi",
+
+    // Job Matcher
+    matcherTitle: "Pencocok Loker",
+    matcherSubtitle: "Revisi CV Otomatis",
+    matcherDesc: "Unggah CV dan Deskripsi Pekerjaan Anda. AI kami akan secara otomatis menulis ulang dan mengoptimalkan resume Anda agar sangat cocok dengan peran yang ditargetkan, sehingga meningkatkan peluang wawancara.",
+    targetJobDesc: "Target Deskripsi Pekerjaan",
+    targetJobDescSubtitle: "Unggah dokumen Deskripsi Pekerjaan ATAU tempelkan teks secara langsung.",
+    pasteJdPlaceholder: "Tempel teks deskripsi pekerjaan di sini...",
+    tailoringResume: "Menyesuaikan resume Anda...",
+    matchAndOptimize: "Cocokkan & Optimalkan",
+    tailoredResumeResult: "Resume Diselesaikan",
+    aiIsWriting: "AI sedang menulis resume yang disesuaikan",
+    aiWritingDesc: "Ini biasanya memakan waktu 10-20 detik...",
+    noResultYet: "Belum Ada Hasil",
+    noResultDesc: "Unggah CV dan Deskripsi Pekerjaan di sebelah kiri, lalu klik Cocokkan & Optimalkan untuk melihat resume yang disesuaikan AI di sini.",
+    errorUploadJdOrPaste: "Harap berikan Deskripsi Pekerjaan (Unggah File atau Tempel Teks).",
+    newFeature: "FITUR BARU",
   },
 };

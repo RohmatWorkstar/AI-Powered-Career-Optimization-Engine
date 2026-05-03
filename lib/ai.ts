@@ -344,3 +344,72 @@ function getMockImprovedResume(originalText: string): string {
 • Added measurable outcomes to project descriptions`;
 }
 
+/**
+ * Build prompt for resume tailoring based on job description.
+ */
+function buildTailorPrompt(resumeText: string, jobDesc: string, locale: string): string {
+  const langInstruction = locale === 'id' 
+    ? 'Write the tailored resume entirely in Indonesian language (Bahasa Indonesia).' 
+    : 'Write the tailored resume entirely in English language.';
+
+  return `You are an expert resume writer and career advisor. Your task is to tailor the following resume specifically to match the given job description.
+
+=== ORIGINAL RESUME ===
+${resumeText}
+
+=== TARGET JOB DESCRIPTION ===
+${jobDesc}
+
+Instructions:
+1. Rewrite the resume to heavily emphasize the skills and experiences that match the job description.
+2. Incorporate keywords from the job description naturally to ensure it passes ATS (Applicant Tracking Systems).
+3. Keep ALL factual information (names, dates, companies, education) accurate. Do not invent fake experience, but you may reframe existing experience to sound more relevant.
+4. Improve bullet points using strong action verbs and quantified achievements.
+5. Format it cleanly as a professional resume.
+6. Make it compelling to HR recruiters reading the target job description.
+7. CRITICAL: ${langInstruction}
+
+Return ONLY the tailored resume text. Do not include any explanations, comments, or markdown formatting (except for basic text structure like bullet points or bold headers).`;
+}
+
+/**
+ * Tailors a resume specifically to a job description using AI.
+ */
+export async function tailorResumeWithAI(
+  resumeText: string,
+  jobDesc: string,
+  locale: string = 'en'
+): Promise<string> {
+  const hasGemini = !!process.env.GEMINI_API_KEY;
+  const hasGrok = !!process.env.GROK_API;
+
+  if (!hasGemini && !hasGrok) {
+    return getMockImprovedResume(resumeText);
+  }
+
+  const prompt = buildTailorPrompt(resumeText, jobDesc, locale);
+
+  const providers = [];
+  if (hasGrok) providers.push({ name: 'Grok', fn: analyzeWithGrok });
+  if (hasGemini) providers.push({ name: 'Gemini', fn: analyzeWithGemini });
+
+  let lastError: any = null;
+
+  for (const provider of providers) {
+    try {
+      console.log(`[tailorResumeWithAI] Attempting tailoring with ${provider.name}...`);
+      const result = await provider.fn(prompt);
+      let cleaned = result.trim();
+      if (cleaned.startsWith("\`\`\`")) {
+        cleaned = cleaned.replace(/^\`\`\`(?:\w+)?\s*\n?/, "").replace(/\n?\`\`\`\s*$/, "");
+      }
+      return cleaned;
+    } catch (error: any) {
+      console.error(`[tailorResumeWithAI] ${provider.name} provider failed:`, error?.message || error);
+      lastError = error;
+    }
+  }
+
+  throw new Error("Failed to tailor resume. Please try again later.");
+}
+
